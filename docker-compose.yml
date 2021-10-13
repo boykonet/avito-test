@@ -1,24 +1,31 @@
 version: "3.9"
 services:
-  # web:
-  #   build: data-access
-  #   ports:
-  #     - "8080:8080"
-  #   volumes:
-  #     - ./database:/database
   db:
     image: postgres
-    # command: bash -c "psql -U gkarina_user -d gkarina_database -f /files/create_tables.sql"
     restart: always
     container_name: pg
     networks:
       - default
     ports:
-      - 5432:5432
+      - ${POSTGRES_PORT}:${POSTGRES_PORT}
     volumes:
       - ./database:/var/lib/postgresql
       - ./postgres/create_tables.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
-      POSTGRES_PASSWORD: gkarina_password
-      POSTGRES_USER: gkarina_user
-      POSTGRES_DB: gkarina_database
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  app:
+    build: data-access
+    restart: always
+    container_name: app
+    networks:
+      - default
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    volumes:
+      - ./data-access:/app
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
