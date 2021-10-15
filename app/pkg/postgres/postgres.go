@@ -2,20 +2,19 @@ package postgres
 
 import (
 	"context"
-
+	"fmt"
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 func NewPool(conn string) (*pgxpool.Pool, error) {
 	poolConfig, err := pgxpool.ParseConfig(conn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("NewPool: ParseConfig: %w", err)
 	}
 
 	pool, err := pgxpool.ConnectConfig(context.Background(), poolConfig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("NewPool: ConnectConfig: %w", err)
 	}
-
 	return pool, nil
 }
