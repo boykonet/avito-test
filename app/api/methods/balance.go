@@ -17,21 +17,21 @@ const (
 // If the amount of money is positive, the amount of money is transferred to user's account,
 // otherwise, the amount of money is withdrawn from the user's account.
 // On success, nil is returned. Otherwise, an error is returned
-func (db *Methods) TransferAndWithdrawMoney(id int, summ float64) (error) {
+func (db *Methods) TransferAndWithdrawMoney(id int, sum float64) (error) {
 
 	balance, err := db.GetBalance(id)
 	if err != nil {
-		return fmt.Errorf("TransferAndWithdrawMoney: %w", err)
+		return fmt.Errorf("GetBalance() error: %w", err)
 	}
 
 	fmt.Println()
-	if balance + summ < 0.00 {
-		return fmt.Errorf("TransferAndWithdrawMoney: Insufficient funds: %v", id)
+	if balance + sum < 0.00 {
+		return fmt.Errorf("Insufficient funds: %v", id)
 	}
 
-	_, err = db.pool.Exec(context.Background(), transfer, summ, id)
+	_, err = db.pool.Exec(context.Background(), transfer, sum, id)
 	if err != nil {
-		return fmt.Errorf("TransferAndWithdrawMoney: %w", err)
+		return fmt.Errorf("Exec() error: %w", err)
 	}
 
 	return nil
@@ -43,31 +43,31 @@ func (db *Methods) TransferAndWithdrawMoney(id int, summ float64) (error) {
 // the third parameter is the amount of money to be transferred from the first user to the second user.
 // The amount of money should be only positive. If the amount of money is negative, an error is returned.
 // On success, nil is returned.
-func (db *Methods) TransferMoney(first_id, second_id int, summ float64) (error) {
+func (db *Methods) TransferMoney(first_id, second_id int, sum float64) (error) {
 
-	if summ < 0.00 {
-		return fmt.Errorf("TransferMoney: Amount of money is negative: %v", summ)
+	if sum < 0.00 {
+		return fmt.Errorf("Amount of money is negative: %v", sum)
 	}
 
 	balance, err := db.GetBalance(first_id)
 	if err != nil {
-		return fmt.Errorf("TransferMoney: %w", err)
+		return fmt.Errorf("GetBalance error: %w", err)
 	}
 
-	if balance - summ < 0.00 {
-		return fmt.Errorf("TransferMoney: Insufficient funds: %v", first_id)
+	if balance - sum < 0.00 {
+		return fmt.Errorf("Insufficient funds: %v", first_id)
 	}
 
 	// Withdraw amount of money from first user
-	_, err = db.pool.Exec(context.Background(), withdraw, summ, first_id)
+	_, err = db.pool.Exec(context.Background(), withdraw, sum, first_id)
 	if err != nil {
-		return fmt.Errorf("TransferMoney: %w", err)
+		return fmt.Errorf("Exec(..., first_id) error: %w", err)
 	}
 
 	// Transfer amount of money to second user
-	_, err = db.pool.Exec(context.Background(), transfer, summ, second_id)
+	_, err = db.pool.Exec(context.Background(), transfer, sum, second_id)
 	if err != nil {
-		return fmt.Errorf("TransferMoney: %w", err)
+		return fmt.Errorf("Exec(..., second_id) error: %w", err)
 	}
 
 	return nil
@@ -81,7 +81,7 @@ func (db *Methods) GetBalance(id int) (float64, error) {
 
 	rows, err := db.pool.Query(context.Background(), request, id)
 	if err != nil {
-		return 0, fmt.Errorf("GetBalance: Query: %w", err)
+		return 0, fmt.Errorf("Query() error: %w", err)
 	}
 
 	defer rows.Close()
@@ -89,7 +89,7 @@ func (db *Methods) GetBalance(id int) (float64, error) {
 	rows.Next()
 	err = rows.Scan(&balance)
 	if err != nil {
-		return 0, fmt.Errorf("GetBalance: Scanf: %w", err)
+		return 0, fmt.Errorf("Scanf() error: %w", err)
 	}
 	return balance, nil
 }
