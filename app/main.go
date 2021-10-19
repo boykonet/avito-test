@@ -6,16 +6,34 @@ import (
 	"net/http"
 	"os"
 
-	"encoding/json"
-	pkgpostgres "app/pkg/postgres"
 	apimethods "app/api/methods"
+	pkgpostgres "app/pkg/postgres"
+	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
+// GetBalance() method:
+// 1. Input data:
+// Content-Type: application/json
+// {"id":uid}, uid > 0
+// 2. Output data:
+// Content-Type: application/json
+// {"id":uid,"balance":ub}, uid - user id (uid > 0), ub - user balance (ub > 0)
+// RefillAndWithdrawMoney() method:
+// 1. Input data:
+// Content-Type: application/json
+// {"id":uid,"sum":usum}, uid > 0, usum
 
 type User struct {
 	ID			int		`json:"id"`
 	Balance		float64	`json:"balance"`
+}
+
+type Output struct {
+	Status		int		`json:"status"`
+	Message		string	`json:"message"`
+	UserID		int		`json:"id"`
+	UserBalance	float64	`json:"balance"`
 }
 
 func RefillAndWithdrawHandler(api *apimethods.Methods) func(w http.ResponseWriter, r *http.Request) {
