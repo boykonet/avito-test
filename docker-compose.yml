@@ -39,7 +39,6 @@ services:
       - default
     ports:
       - ${APP_PORT}:${APP_PORT}
-      # - ${PGADMIN_PORT}:${PGADMIN_PORT}
     volumes:
       - ./app:/app
       - ./run.sh:/run.sh
