@@ -9,21 +9,41 @@ services:
     ports:
       - ${POSTGRES_PORT}:${POSTGRES_PORT}
     volumes:
-      - ./database:/var/lib/postgresql
+      - ./postgres:/var/lib/postgresql
       - ./create_tables.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-  # app:
-  #   build: app/
-  #   restart: always
-  #   container_name: app
-  #   networks:
-  #     - default
-  #   ports:
-  #     - ${APP_PORT}:${APP_PORT}
-  #   volumes:
-  #     - ./app:/app
-  #   environment:
-      # POSTGRES_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}?sslmode=disable"
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    container_name: pgadmin
+    networks:
+      - default
+    ports:
+      - ${PGADMIN_PORT}:${PGADMIN_LISTEN_PORT}
+    volumes:
+      - ./pgadmin:/var/lib/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+    depends_on:
+      - db
+  app:
+    build: .
+    image: app
+    restart: always
+    container_name: app
+    networks:
+      - default
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+      # - ${PGADMIN_PORT}:${PGADMIN_PORT}
+    volumes:
+      - ./app:/app
+      - ./run.sh:/run.sh
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      - db
