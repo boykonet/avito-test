@@ -2,8 +2,36 @@ package methods
 
 import (
 	"context"
+	"errors"
 	"fmt"
 )
+
+var (
+	UserNotFound = errors.New("User not found")
+	InsufficientFunds = errors.New("Insufficient funds")
+)
+
+// The GetBalance method, in successful, returns the amount of the (user's money, nil)
+// Otherwise, the returns an (0, error)
+func (db *Methods) GetBalance(id int) (int, float64, error) {
+	var balance float64
+
+	const request = `SELECT balance FROM user_balance WHERE id = $1`
+
+	rows, err := db.pool.Query(context.Background(), request, id)
+	if err != nil {
+		return 0, 0, fmt.Errorf("pool.Query() error: %w", err)
+	}
+
+	defer rows.Close()
+
+	rows.Next()
+	err = rows.Scan(&balance)
+	if err != nil {
+		return 0, 0, UserNotFound
+	}
+	return id, balance, nil
+}
 
 // The RefillAndWithdrawMoney method takes two parameters:
 // the first parameter is the user ID,
@@ -20,9 +48,8 @@ func (db *Methods) RefillAndWithdrawMoney(id int, sum float64) (int, float64, er
 		return 0, 0, fmt.Errorf("GetBalance() error: %w", err)
 	}
 
-	fmt.Println()
 	if balance + sum < 0.00 {
-		return 0, 0, fmt.Errorf("Insufficient funds: %v", id)
+		return 0, 0, InsufficientFunds
 	}
 
 	_, err = db.pool.Exec(context.Background(), transfer, sum, id)
@@ -73,27 +100,3 @@ func (db *Methods) TransferMoney(first_id, second_id int, sum float64) (int, flo
 
 	return first_id, balance - sum, second_id, sum, nil
 }
-
-
-// The GetBalance method, in successful, returns the amount of the (user's money, nil)
-// Otherwise, the returns an (0, error)
-func (db *Methods) GetBalance(id int) (int, float64, error) {
-	var balance float64
-
-	const request = `SELECT balance FROM user_balance WHERE id = $1`
-
-	rows, err := db.pool.Query(context.Background(), request, id)
-	if err != nil {
-		return 0, 0, fmt.Errorf("Query() error: %w", err)
-	}
-
-	defer rows.Close()
-
-	rows.Next()
-	err = rows.Scan(&balance)
-	if err != nil {
-		return 0, 0, fmt.Errorf("Scanf() error: %w", err)
-	}
-	return id, balance, nil
-}
-

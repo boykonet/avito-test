@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,9 +10,9 @@ import (
 
 	apimethods "app/api/methods"
 	pkgpostgres "app/pkg/postgres"
-	"encoding/json"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/render"
 )
 // GetBalance() method:
 // 1. Input:
@@ -24,81 +26,116 @@ import (
 //		---
 //		status - response status, message - error message, uid - user id, ub - user balance
 //		If successful:
-//			status = 200, message = "OK", uid > 0, ub > 0.00
-//		Otherwise:
-//			uid = 0, ub = 0.00
-//		status = 500, message = "Internal Server Error"
+//			status = 0, uid > 0, ub > 0.00
+//		If data is not a valid:
+//			status = 1, uid = 0, ub = 0
+//		If user ID does not exist:
+//			status = 2, uid = 0, ub = 0.00
+//
 // ---
 // RefillAndWithdrawMoney() method:
 // 1. Input data:
-// Content-Type: application/json
-// {"id":uid,"sum":usum}, uid > 0, usum
+//		Content-Type: application/json
+//		request body: {"id":uid,"sum":usum}, uid > 0, usum
 
-type User struct {
+type RequestGetBalance struct {
+	ID			int		`json:"id"`
+}
+
+type ResponseGetBalance struct {
+	Status		int		`json:"status"`
 	ID			int		`json:"id"`
 	Balance		float64	`json:"balance"`
 }
 
-type Output struct {
+type RequestRefillWithdraw struct {
+	ID			int		`json:"id"`
+	Sum			float64	`json:"sum"`
+}
+
+type ResponseRefillWithdraw struct {
 	Status		int		`json:"status"`
-	Message		string	`json:"message"`
-	UserID		int		`json:"id"`
-	UserBalance	float64	`json:"balance"`
+	ID			int		`json:"id"`
+	Balance		float64	`json:"balance"`
 }
 
 func GetBalanceHandler(GetBalance func(int) (int, float64, error)) func(w http.ResponseWriter, r *http.Request) {
-	var out Output
-	var u User
-
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := json.NewDecoder(r.Body).Decode(&u)
-		if err != nil {
-			log.Fatal(err)
-		}
-		uid, ub, err := GetBalance(u.ID)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Println(err)
-			out = Output{
-				Status:			500,
-				Message:		"Internal Server Error",
-				UserID:			0,
-				UserBalance:	0.00,
+		var request		RequestGetBalance
+		var response	ResponseGetBalance
+
+		w.Header().Set("Content-Type", "application/json")
+
+		err := json.NewDecoder(r.Body).Decode(&request)
+		p := r.Header.Get("Content-Type")
+
+		switch {
+		case err != nil:
+			w.WriteHeader(http.StatusBadRequest)
+			response = ResponseGetBalance{ Status: 1, ID: 0, Balance: 0.00 }
+			log.Println("json.NewDecoder(): %w", err)
+		case request.ID <= 0:
+			w.WriteHeader(http.StatusBadRequest)
+			response = ResponseGetBalance{ Status: 1, ID: 0, Balance: 0.00 }
+		case p != "application/json":
+			w.WriteHeader(http.StatusBadRequest)
+			response = ResponseGetBalance{ Status: 1, ID: 0, Balance: 0.00 }
+		default:
+			uid, ub, err := GetBalance(request.ID)
+			switch {
+			case errors.Is(err, apimethods.UserNotFound):
+				w.WriteHeader(http.StatusBadRequest)
+				response = ResponseGetBalance{ Status: 2, ID: 0, Balance: 0.00 }
+			default:
+				w.WriteHeader(http.StatusOK)
+				response = ResponseGetBalance{ Status: 0, ID: uid, Balance: ub }
 			}
-		} else {
-			w.WriteHeader(http.StatusOK)
-			out = Output{
-				Status:			200,
-				Message:		"OK",
-				UserID:			uid,
-				UserBalance:	ub,
-			}
 		}
-		w.Header().Set("Content-Type:", "application/json")
-		b, err := json.Marshal(out)
-		_, err = w.Write(b)
-		if err != nil {
-			log.Fatal(err)
-		}
+		render.JSON(w, r, response)
 	}
 }
 
-//func RefillAndWithdrawHandler(RefillAndWithdrawMoney func(int, float64)) func(w http.ResponseWriter, r *http.Request) {
-//	return func(w http.ResponseWriter, r *http.Request) {
-//		var user User
-//
-//		err := json.NewDecoder(r.Body).Decode(&user)
-//		if err != nil {
-//			log.Fatal(err)
-//		}
-//		user.ID, user.Balance, err = RefillAndWithdrawMoney(user.ID, user.Balance)
-//		w.WriteHeader(http.StatusCreated)
-//		w.Header().Set("Content-Type:", "application/json")
-//		b, err := json.Marshal(user)
-//		w.Write(b)
-//	}
-//}
-//
+func RefillAndWithdrawHandler(RefillAndWithdrawMoney func(int, float64) (int, float64, error)) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var request		RequestRefillWithdraw
+		var response	ResponseRefillWithdraw
+
+		w.Header().Set("Content-Type", "application/json")
+
+		err := json.NewDecoder(r.Body).Decode(&request)
+		p := r.Header.Get("Content-Type")
+
+		switch {
+		case err != nil:
+			w.WriteHeader(http.StatusBadRequest)
+			response = ResponseRefillWithdraw{ Status: 1, ID: 0, Balance: 0.00 }
+			log.Println("json.NewDecoder(): %w", err)
+		case request.ID <= 0:
+			w.WriteHeader(http.StatusBadRequest)
+			response = ResponseRefillWithdraw{ Status: 1, ID: 0, Balance: 0.00 }
+		case p != "application/json":
+			w.WriteHeader(http.StatusBadRequest)
+			response = ResponseRefillWithdraw{ Status: 1, ID: 0, Balance: 0.00 }
+		default:
+			uid, ub, err := RefillAndWithdrawMoney(request.ID, request.Sum)
+			switch {
+			case errors.Is(err, apimethods.InsufficientFunds):
+				w.WriteHeader(http.StatusBadRequest)
+				response = ResponseRefillWithdraw{ Status: 2, ID: 0, Balance: 0.00 }
+			default:
+				w.WriteHeader(http.StatusOK)
+				response = ResponseRefillWithdraw{ Status: 0, ID: uid, Balance: ub }
+			}
+		}
+		render.JSON(w, r, response)
+		//u.ID, u.Balance, err = RefillAndWithdrawMoney(u.ID, u.Balance)
+		//w.WriteHeader(http.StatusCreated)
+		//w.Header().Set("Content-Type:", "application/json")
+		//b, err := json.Marshal(u)
+		//w.Write(b)
+	}
+}
+
 //func TransferHandler(api *apimethods.Methods) func(w http.ResponseWriter, r *http.Request) {
 //	return func(w http.ResponseWriter, r *http.Request) {
 //		api.TransferMoney(1, 2, 33.33)
@@ -121,10 +158,10 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 
-	//r.Post("/refill", RefillAndWithdrawHandler(api))
-	//r.Post("/withdraw", RefillAndWithdrawHandler(api))
-	//r.Post("/transfer", TransferHandler(api))
 	r.Get("/balance", GetBalanceHandler(api.GetBalance))
+	r.Post("/refill", RefillAndWithdrawHandler(api.RefillAndWithdrawMoney))
+	r.Post("/withdraw", RefillAndWithdrawHandler(api.RefillAndWithdrawMoney))
+	//r.Post("/transfer", TransferHandler(api))
 
 	log.Fatal(http.ListenAndServe(":8080", r))
 	// c := make(chan os.Signal, 1)

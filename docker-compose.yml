@@ -30,19 +30,19 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
     depends_on:
       - db
-  app:
-    build: .
-    image: app
-    restart: always
-    container_name: app
-    networks:
-      - default
-    ports:
-      - ${APP_PORT}:${APP_PORT}
-    volumes:
-      - ./app:/app
-      - ./run.sh:/run.sh
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-    depends_on:
-      - db
+  # app:
+  #   build: .
+  #   image: app
+  #   restart: always
+  #   container_name: app
+  #   networks:
+  #     - default
+  #   ports:
+  #     - ${APP_PORT}:${APP_PORT}
+  #   volumes:
+  #     - ./app:/app
+  #     - ./run.sh:/run.sh
+  #   environment:
+  #     DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:${POSTGRES_PORT}/${POSTGRES_DB}?sslmode=disable
+  #   depends_on:
+  #     - db
