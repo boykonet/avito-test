@@ -18,7 +18,7 @@ func CreateApi(pgxPool *pgxpool.Pool) Api {
 }
 
 type Api interface {
-	RefillAndWithdrawMoney(id int, sum float64) (error)
-	TransferMoney(first_id, second_id int, sum float64) (error)
-	GetBalance(id int) (float64, error)
+	GetBalance(id int) (int, float64, error)
+	RefillAndWithdrawMoney(id int, sum float64) (int, float64, error)
+	TransferMoney(from, to int, sum float64) (int, float64, error)
 }

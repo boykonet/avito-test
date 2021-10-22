@@ -9,6 +9,7 @@ import (
 var (
 	UserNotFound = errors.New("User not found")
 	InsufficientFunds = errors.New("Insufficient funds")
+	WrongAmount = errors.New("Wrong amount of money")
 )
 
 // The GetBalance method, in successful, returns the amount of the (user's money, nil)
@@ -66,37 +67,42 @@ func (db *Methods) RefillAndWithdrawMoney(id int, sum float64) (int, float64, er
 // the third parameter is the amount of money to be transferred from the first user to the second user.
 // The amount of money should be only positive. If the amount of money is negative, an error is returned.
 // On success, nil is returned.
-func (db *Methods) TransferMoney(first_id, second_id int, sum float64) (int, float64, int, float64, error) {
+func (db *Methods) TransferMoney(from, to int, sum float64) (int, float64, error) {
 
 	const (
-		transfer = `UPDATE user_balance SET balance = balance + $1 WHERE id = $2`
 		withdraw = `UPDATE user_balance SET balance = balance - $1 WHERE id = $2`
+		refill = `UPDATE user_balance SET balance = balance + $1 WHERE id = $2`
 	)
 
 	if sum < 0.00 {
-		return 0, 0, 0, 0, fmt.Errorf("Amount of money is negative: %v", sum)
+		return 0, 0, WrongAmount
 	}
 
-	_, balance, err := db.GetBalance(first_id)
+	_, from_balance, err := db.GetBalance(from)
 	if err != nil {
-		return 0, 0, 0, 0, fmt.Errorf("GetBalance error: %w", err)
+		return 0, 0, fmt.Errorf("GetBalance() error: %w", err)
 	}
 
-	if balance - sum < 0.00 {
-		return 0, 0, 0, 0, fmt.Errorf("Insufficient funds: %v", first_id)
+	_, _, err = db.GetBalance(to)
+	if err != nil {
+		return 0, 0, fmt.Errorf("GetBalance() error: %w", err)
+	}
+
+	if from_balance - sum < 0.00 {
+		return 0, 0, InsufficientFunds
 	}
 
 	// Withdraw amount of money from first user
-	_, err = db.pool.Exec(context.Background(), withdraw, sum, first_id)
+	_, err = db.pool.Exec(context.Background(), withdraw, sum, from)
 	if err != nil {
-		return 0, 0, 0, 0, fmt.Errorf("Exec(..., first_id) error: %w", err)
+		return 0, 0, fmt.Errorf("Exec(..., first_id) error: %w", err)
 	}
 
-	// Transfer amount of money to second user
-	_, err = db.pool.Exec(context.Background(), transfer, sum, second_id)
+	// Refill amount of money to second user
+	_, err = db.pool.Exec(context.Background(), refill, sum, to)
 	if err != nil {
-		return 0, 0, 0, 0, fmt.Errorf("Exec(..., second_id) error: %w", err)
+		return 0, 0, fmt.Errorf("Exec(..., second_id) error: %w", err)
 	}
 
-	return first_id, balance - sum, second_id, sum, nil
+	return from, from_balance - sum, nil
 }
