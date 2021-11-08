@@ -15,14 +15,14 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 )
-// GetBalance() method:
-// 1. Input data:
+//GetBalance() method:
+//1. Input data:
 //		Content-Type: application/json
 //		request body: {"id":id}
 //		---
 //		id - user id
 //		id > 0
-// 2. Output:
+//2. Output:
 //		Content-Type: application/json
 //		response body: {"status":status,"id":id,"balance":balance}
 //		---
@@ -39,16 +39,16 @@ import (
 //		If server error:
 //			status = 3, id = 0, balance = 0.00
 //
-// ---
-// RefillAndWithdrawMoney() method:
-// 1. Input data:
+//---
+//RefillAndWithdrawMoney() method:
+//1. Input data:
 //		Content-Type: application/json
 //		request body: {"id":id,"sum":sum}
 //		---
 //		id - user id
 //		sum - amount of money to refill or withdraw
 //		id > 0, sum != 0
-// 2. Output:
+//2. Output:
 //		Content-Type: application/json
 //		response body: {"status":status,"id":id,"balance":balance}
 //		---
@@ -66,17 +66,17 @@ import (
 //			status = 4, id = 0, balance = 0.00
 //		If server error:
 //			status = 3, id = 0, balance = 0.00
-// ---
-// TransferMoney() method:
-// 1. Input data:
+//---
+//TransferMoney() method:
+//1. Input data:
 //		Content-Type: application/json
 //		request body: {"from":from,"to":to,"sum":sum}
 //		---
 //		from - user id who transfer money
 //		to - user id to whom money is transferred
 //		sum - amount of money to transfer
-//		from > 0, to > 0, sum != 0
-// 2. Output
+//		from > 0, to > 0, sum > 0
+//2. Output
 //		Content-Type: application/json
 //		response body: {"status":status,"id":id,"balance":balance}
 //		---
@@ -212,7 +212,7 @@ func TransferHandler(TransferMoney func(int, int, float64)(int, float64, error))
 			w.WriteHeader(http.StatusBadRequest)
 			response = ResponseToUser{ Status: 1, ID: 0, Balance: 0.00 }
 			log.Println("json.NewDecoder(): %w", err)
-		case request.From <= 0 || request.To <= 0 || request.Sum <= 0:
+		case request.From <= 0 || request.To <= 0 || request.Sum <= 0 || request.From == request.To:
 			w.WriteHeader(http.StatusBadRequest)
 			response = ResponseToUser{ Status: 1, ID: 0, Balance: 0.00 }
 		case p != "application/json":
