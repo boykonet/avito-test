@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"os"
 
@@ -142,6 +143,7 @@ func GetBalanceHandler(GetBalance func(int) (int, float64, error)) func(w http.R
 			response = ResponseToUser{ Status: 1, ID: 0, Balance: 0.00 }
 		default:
 			uid, ub, err := GetBalance(request.ID)
+			ub = math.Round(ub * 100) / 100
 			switch {
 			case errors.Is(err, apimethods.UserNotFound):
 				w.WriteHeader(http.StatusBadRequest)
@@ -178,21 +180,20 @@ func RefillAndWithdrawHandler(RefillAndWithdrawMoney func(int, float64) (int, fl
 			response = ResponseToUser{ Status: 1, ID: 0, Balance: 0.00 }
 		default:
 			uid, ub, err := RefillAndWithdrawMoney(request.ID, request.Sum)
+			ub = math.Round(ub * 100) / 100
 			switch {
 			case errors.Is(err, apimethods.InsufficientFunds):
 				w.WriteHeader(http.StatusBadRequest)
 				response = ResponseToUser{ Status: 2, ID: 0, Balance: 0.00 }
+			case errors.Is(err, apimethods.UserNotFound):
+				w.WriteHeader(http.StatusBadRequest)
+				response = ResponseToUser{ Status: 4, ID: 0, Balance: 0.00 }
 			default:
 				w.WriteHeader(http.StatusOK)
 				response = ResponseToUser{ Status: 0, ID: uid, Balance: ub }
 			}
 		}
 		render.JSON(w, r, response)
-		//u.ID, u.Balance, err = RefillAndWithdrawMoney(u.ID, u.Balance)
-		//w.WriteHeader(http.StatusCreated)
-		//w.Header().Set("Content-Type:", "application/json")
-		//b, err := json.Marshal(u)
-		//w.Write(b)
 	}
 }
 
@@ -211,7 +212,7 @@ func TransferHandler(TransferMoney func(int, int, float64)(int, float64, error))
 			w.WriteHeader(http.StatusBadRequest)
 			response = ResponseToUser{ Status: 1, ID: 0, Balance: 0.00 }
 			log.Println("json.NewDecoder(): %w", err)
-		case request.From <= 0 || request.To <= 0:
+		case request.From <= 0 || request.To <= 0 || request.Sum <= 0:
 			w.WriteHeader(http.StatusBadRequest)
 			response = ResponseToUser{ Status: 1, ID: 0, Balance: 0.00 }
 		case p != "application/json":
@@ -219,6 +220,7 @@ func TransferHandler(TransferMoney func(int, int, float64)(int, float64, error))
 			response = ResponseToUser{ Status: 1, ID: 0, Balance: 0.00 }
 		default:
 			uid, ub, err := TransferMoney(request.From, request.To, request.Sum)
+			ub = math.Round(ub * 100) / 100
 			switch {
 			case errors.Is(err, apimethods.InsufficientFunds):
 				w.WriteHeader(http.StatusBadRequest)
@@ -260,13 +262,6 @@ func main() {
 	server := CreateNewServer()
 
 	server.MountHandlers(api)
-	//r.Use(middleware.RequestID)
-	//r.Use(middleware.Logger)
-	//
-	//r.Get("/balance", GetBalanceHandler(api.GetBalance))
-	//r.Post("/refill", RefillAndWithdrawHandler(api.RefillAndWithdrawMoney))
-	//r.Post("/withdraw", RefillAndWithdrawHandler(api.RefillAndWithdrawMoney))
-	//r.Post("/transfer", TransferHandler(api.TransferMoney))
 
 	log.Fatal(http.ListenAndServe(":8080", server.Router))
 	// c := make(chan os.Signal, 1)
