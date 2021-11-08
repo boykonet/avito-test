@@ -1,13 +1,49 @@
 # avito
 
-Этот репозиторий - решение тестового задания (формулировка задания представлена ниже) на позицию golang бэкенд-разработчика в Авито.
+Решение тестового задания (формулировка задания представлена ниже) на позицию стажера-бэкендера в Авито.
 
 
-В корневой директории проекта, там, где находится docker-compose.yml файл нужно выполнить команду "docker-compose up -d" или выполнить "make up".
-В результате выполнения этой команды будут созданы два docker-конейнера - первый, "pg", контейнер с базой данных; второй, "app", само приложение. Чтобы проверить работоспособность приложения нужно набрать в командной строке следующие команды:
-1. Для проверки работоспособности метода GetMoney(...) нужно выполнить curl -v --request GET --header "Content-Type: application/json" --data '{"id":1}' localhost:8080/balance
-2. Для метода ююю
-curl -v --request POST --header "Content-Type: application/json" --data '{"id":1,"balance":33.33}' localhost:8080/refill
+По заданию нужно реализовать HTTP API, которое позволяет взаимодействовать с балансом пользователя - методы получения баланса пользователя ( GetBalance() ), метод пополнения и снятия средств со счета пользователя ( RefillAndWithdrawMoney() ) и метод перевода средств со счета одного пользователя на счет другого.
+
+Чтобы собрать проект, нужно в корневой директории проекта, там, где находится docker-compose.yml файл, выполнить следующую команду:
+```
+docker-compose up -d
+```
+или
+```
+make up
+```
+
+В результате будут созданы три docker-конейнера - первый, `pg` - контейнер с базой данных, второй - `pgadmin` - контейнер с интерактивной платформой для управления базами данных и третий - `app` - само приложение.
+
+
+1. Тестирование сервера с помощью тестов:
+Запустить следующую команду:
+```
+DATABASE_URL=postgres://user:password@localhost:5432/database?sslmode=disable go test ./... -v -cover
+```
+
+2. Тестирование сервера через терминал:
+* метод GetBalance():
+```
+curl -v --request GET --header "Content-Type: application/json" --data '{"id":1}' localhost:8080/balance
+```
+* метод RefillAndWithdrawMoney():
+* Пополнение баланса:
+```
+curl -v --request POST --header "Content-Type: application/json" --data '{"id":2,"sum":5}' localhost:8080/refill
+```
+* Снятие средств:
+```
+curl -v --request POST --header "Content-Type: application/json" --data '{"id":2,"sum":-5}' localhost:8080/withdraw
+```
+
+* метод TransferMoney():
+* Перевод средств с одного счета на другой:
+```
+curl -v --request POST --header "Content-Type: application/json" --data '{"from":2,"to":3,"sum":5}' localhost:8080/transfer
+```
+
 
 > # Тестовое задание на позицию стажера-бекендера
 >
