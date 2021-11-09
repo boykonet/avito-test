@@ -20,12 +20,12 @@ make up
 Следующая мини-документация объясняет, как использовать HTTP API.
 
 1. Метод GetBalance():
-  * Входные данные:
-	** Content-Type: application/json
-	** request body: {"id":id}
-	** ---
-	** id - уникальный идентификатор пользователя (число), id > 0
-  * Выходные данные:
+* Входные данные:
+  * Content-Type: application/json
+  * request body: {"id":id}
+  * ---
+  * id - уникальный идентификатор пользователя (число), id > 0
+* Выходные данные:
     	** Content-Type: application/json
 	** response body: {"status":status,"id":id,"balance":balance}
 	** ---
