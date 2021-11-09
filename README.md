@@ -23,17 +23,17 @@ make up
 * Входные данные:
   * Content-Type: application/json
   * request body: {"id":id}
-  ---
+  
   * id - уникальный идентификатор пользователя (число), id > 0
 * Выходные данные:
   * Content-Type: application/json
   * response body: {"status":status,"id":id,"balance":balance}
-  ---
+
   * status - статус ответа сервера (число)
   * id - идентификатор пользователя (число)
   * balance - баланс пользователя (число, максимум два знака после запятой)
     
-
+---
 2. Метод RefillAndWithdrawMoney():
   * Входные данные:
     Content-Type: application/json
