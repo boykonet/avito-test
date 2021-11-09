@@ -103,6 +103,8 @@ curl -v --request POST --header "Content-Type: application/json" --data '{"from"
 ```
 
 
+
+
 > # Тестовое задание на позицию стажера-бекендера
 >
 > ## Микросервис для работы с балансом пользователей.
