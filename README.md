@@ -23,7 +23,7 @@ make up
 * Входные данные:
   * Content-Type: application/json
   * request body: {"id":id}
-  id - уникальный идентификатор пользователя (число), id > 0
+  * * id - уникальный идентификатор пользователя (число), id > 0
 * Выходные данные:
   * Content-Type: application/json
   * response body: {"status":status,"id":id,"balance":balance}
