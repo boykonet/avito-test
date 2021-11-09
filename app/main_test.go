@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"testing"
 )
 
@@ -88,15 +89,6 @@ func TestBalance(t *testing.T) {
 		http.StatusBadRequest,
 		`{"status":1,"id":0,"balance":0}`)
 
-	// User id doesn't exist
-	checkMethods(t, server,
-		`{"id":6}`,
-		`GET`,
-		`/balance`,
-		`application/json`,
-		http.StatusBadRequest,
-		`{"status":2,"id":0,"balance":0}`)
-
 	// Incorrect content type (not application/json)
 	checkMethods(t, server,
 		`{"id":1}`,
@@ -111,9 +103,18 @@ func TestBalance(t *testing.T) {
 		`{"beleberda":1}`,
 		`GET`,
 		`/balance`,
-		`blablabla`,
+		`application/json`,
 		http.StatusBadRequest,
 		`{"status":1,"id":0,"balance":0}`)
+
+	// User id doesn't exist
+	checkMethods(t, server,
+		`{"id":6}`,
+		`GET`,
+		`/balance`,
+		`application/json`,
+		http.StatusBadRequest,
+		`{"status":2,"id":0,"balance":0}`)
 
 	// Method not allowed
 	checkMethods(t, server,
@@ -128,21 +129,26 @@ func TestBalance(t *testing.T) {
 
 	api := apimethods.New(pool)
 
-	_, sum, _ :=  api.GetBalance(2)
-	expBalance := fmt.Sprintf(`{"status":0,"id":2,"balance":%.2f}`, math.Round((5.0 + sum) * 100) / 100)
+	sum := 5.0
+	id, balance, _ :=  api.GetBalance(2)
+	expBalance := fmt.Sprintf(`{"status":0,"id":%v,"balance":%.2f}`, id, math.Round((sum + balance) * 100) / 100)
 
 	// Correct request
+	request := fmt.Sprintf(`{"id":%v,"sum":%.2f}`, id, sum)
+
 	checkMethods(t, server,
-		`{"id":2,"sum":5}`,
+		request,
 		`POST`,
 		`/refill`,
 		`application/json`,
 		http.StatusOK,
 		expBalance)
 
-	// Check incorrect user id
+	// Negative user id
+	request = fmt.Sprintf(`{"id":%v,"sum":%.2f}`, -id, sum)
+
 	checkMethods(t, server,
-		`{"id":-1,"sum":5}`,
+		request,
 		`POST`,
 		`/refill`,
 		`application/json`,
@@ -150,8 +156,10 @@ func TestBalance(t *testing.T) {
 		`{"status":1,"id":0,"balance":0}`)
 
 	// User id is not a number (string)
+	request = fmt.Sprintf(`{"id":"%v","sum":%.2f}`, id, sum)
+
 	checkMethods(t, server,
-		`{"id":"2","sum":5}`,
+		request,
 		`POST`,
 		`/refill`,
 		`application/json`,
@@ -159,8 +167,10 @@ func TestBalance(t *testing.T) {
 		`{"status":1,"id":0,"balance":0}`)
 
 	// Sum is not a float (string)
+	request = fmt.Sprintf(`{"id":%v,"sum":"%.2f"}`, id, sum)
+
 	checkMethods(t, server,
-		`{"id":2,"sum":"5"}`,
+		request,
 		`POST`,
 		`/refill`,
 		`application/json`,
@@ -168,8 +178,10 @@ func TestBalance(t *testing.T) {
 		`{"status":1,"id":0,"balance":0}`)
 
 	// Incorrect content type (not application/json)
+	request = fmt.Sprintf(`{"id":%v,"sum":%.2f}`, id, sum)
+
 	checkMethods(t, server,
-		`{"id":2,"sum":5}`,
+		request,
 		`POST`,
 		`/refill`,
 		`blablabla`,
@@ -177,8 +189,10 @@ func TestBalance(t *testing.T) {
 		`{"status":1,"id":0,"balance":0}`)
 
 	// Incorrect body
+	request = `{"beleberda":1}`
+
 	checkMethods(t, server,
-		`{"beleberda":1}`,
+		request,
 		`POST`,
 		`/refill`,
 		`application/json`,
@@ -187,17 +201,21 @@ func TestBalance(t *testing.T) {
 
 
 	// User id doesn't exist
+	request = fmt.Sprintf(`{"id":%v,"sum":%.2f}`, id + 100, sum)
+
 	checkMethods(t, server,
-		`{"id":6,"sum":5}`,
+		request,
 		`POST`,
 		`/refill`,
 		`application/json`,
 		http.StatusBadRequest,
-		`{"status":4,"id":0,"balance":0}`)
+		`{"status":2,"id":0,"balance":0}`)
 
 	// Method not allowed
+	request = fmt.Sprintf(`{"id":%v,"sum":%.2f}`, id, sum)
+
 	checkMethods(t, server,
-		`{"id":2,"sum":5}`,
+		request,
 		`GET`,
 		`/refill`,
 		`application/json`,
@@ -206,8 +224,8 @@ func TestBalance(t *testing.T) {
 
 	//-------------------- WITHDRAW --------------------
 
-	_, sum, _ =  api.GetBalance(2)
-	expBalance = fmt.Sprintf(`{"status":0,"id":2,"balance":%.2f}`, math.Round((sum - 5.0) * 100) / 100)
+	id, sum, _ =  api.GetBalance(2)
+	expBalance = fmt.Sprintf(`{"status":0,"id":%v,"balance":%.2f}`, id, math.Round((sum - 5.0) * 100) / 100)
 
 	// Correct request
 	checkMethods(t, server,
@@ -235,7 +253,7 @@ func TestBalance(t *testing.T) {
 		`/withdraw`,
 		`application/json`,
 		http.StatusBadRequest,
-		`{"status":2,"id":0,"balance":0}`)
+		`{"status":3,"id":0,"balance":0}`)
 
 	// Method not allowed
 	checkMethods(t, server,
@@ -248,12 +266,19 @@ func TestBalance(t *testing.T) {
 
 	//-------------------- TRANSFER --------------------
 
-	_, sum, _ =  api.GetBalance(2)
-	expBalance = fmt.Sprintf(`{"status":0,"id":2,"balance":%.2f}`, math.Round((sum - 5.0) * 100) / 100)
+	from_id, from_balance, _ :=  api.GetBalance(2)
+	to_id, to_balance, _ :=  api.GetBalance(3)
+	sum = 5.
+
+	expBalance = fmt.Sprintf(`{"status":0,"from_id":%v,"from_balance":%.2f,"to_id":%v,"to_balance":%.2f}`,
+		from_id, math.Round((from_balance - sum) * 100) / 100,
+		to_id, math.Round((to_balance + sum) * 100) / 100 )
 
 	// Correct request
+	request := fmt.Sprintf(`{"from":%v,"to":%v,"sum":%.2f}`, from_id, to_id, sum)
+
 	checkMethods(t, server,
-		`{"from":2,"to":3,"sum":5}`,
+		request,
 		`POST`,
 		`/transfer`,
 		`application/json`,
@@ -261,48 +286,61 @@ func TestBalance(t *testing.T) {
 		expBalance)
 
 	// User id is not a number (string)
-	checkMethods(t, server,
-		`{"from":"2","to":3,"sum":5}`,
-		`POST`,
-		`/transfer`,
-		`application/json`,
-		http.StatusBadRequest,
-		`{"status":1,"id":0,"balance":0}`)
+	request = fmt.Sprintf(`{"from":"%v","to":%v,"sum":%.2f}`,
+		strconv.Itoa(from_id), to_id, sum)
 
 	checkMethods(t, server,
-		`{"from":2,"to":"3","sum":5}`,
+		request,
 		`POST`,
 		`/transfer`,
 		`application/json`,
 		http.StatusBadRequest,
-		`{"status":1,"id":0,"balance":0}`)
+		`{"status":1,"from_id":0,"from_balance":0,"to_id":0,"to_balance":0}`)
+
+	request = fmt.Sprintf(`{"from":%v,"to":"%v","sum":%.2f}`,
+		from_id, strconv.Itoa(to_id), sum)
+
+	checkMethods(t, server,
+		request,
+		`POST`,
+		`/transfer`,
+		`application/json`,
+		http.StatusBadRequest,
+		`{"status":1,"from_id":0,"from_balance":0,"to_id":0,"to_balance":0}`)
 
 	// Sum is not a float (string)
+	request = fmt.Sprintf(`{"from":%v,"to":%v,"sum":"%v"}`,
+		from_id, to_id, strconv.FormatFloat(sum, 'f', 2, 64))
+
 	checkMethods(t, server,
-		`{"from":2,"to":3,"sum":"5"}`,
+		request,
 		`POST`,
 		`/transfer`,
 		`application/json`,
 		http.StatusBadRequest,
-		`{"status":1,"id":0,"balance":0}`)
+		`{"status":1,"from_id":0,"from_balance":0,"to_id":0,"to_balance":0}`)
 
 	// Sum is negative
+	request = fmt.Sprintf(`{"from":%v,"to":%v,"sum":%.2f}`, from_id, to_id, -sum)
+
 	checkMethods(t, server,
-		`{"from":2,"to":3,"sum":-5}`,
+		request,
 		`POST`,
 		`/transfer`,
 		`application/json`,
 		http.StatusBadRequest,
-		`{"status":1,"id":0,"balance":0}`)
+		`{"status":1,"from_id":0,"from_balance":0,"to_id":0,"to_balance":0}`)
 
 	// Incorrect content type (not application/json)
+	request = fmt.Sprintf(`{"from":%v,"to":%v,"sum":%.2f}`, from_id, to_id, sum)
+
 	checkMethods(t, server,
-		`{"from":2,"to":3,"sum":5}`,
+		request,
 		`POST`,
 		`/transfer`,
 		`blablabla`,
 		http.StatusBadRequest,
-		`{"status":1,"id":0,"balance":0}`)
+		`{"status":1,"from_id":0,"from_balance":0,"to_id":0,"to_balance":0}`)
 
 	// Incorrect body
 	checkMethods(t, server,
@@ -311,11 +349,13 @@ func TestBalance(t *testing.T) {
 		`/transfer`,
 		`application/json`,
 		http.StatusBadRequest,
-		`{"status":1,"id":0,"balance":0}`)
+		`{"status":1,"from_id":0,"from_balance":0,"to_id":0,"to_balance":0}`)
 
 	// Method not allowed
+	request = fmt.Sprintf(`{"from":%v,"to":%v,"sum":%.2f}`, from_id, to_id, sum)
+
 	checkMethods(t, server,
-		`{"from":2,"to":3,"sum":5}`,
+		request,
 		`GET`,
 		`/transfer`,
 		`application/json`,
