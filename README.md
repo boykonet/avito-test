@@ -21,61 +21,55 @@ make up
 
 1. Метод GetBalance():
 * Входные данные:
-    * Content-Type: application/json
-    * request body: {"id":id}
-    * id - уникальный идентификатор пользователя (число), id > 0
+  * Content-Type: application/json
+  * request body: {"id":id}
+  * id - уникальный идентификатор пользователя (число), id > 0
 * Выходные данные:
   * Content-Type: application/json
   * response body: {"status":status,"id":id,"balance":balance}
   * status - статус ответа сервера (число)
   * id - идентификатор пользователя (число)
   * balance - баланс пользователя (число, максимум два знака после запятой)
-    
 ---
 2. Метод RefillAndWithdrawMoney():
-  * Входные данные:
-    Content-Type: application/json
-		request body: {"id":id,"sum":sum}
-		---
-		id - уникальный идентификатор пользователя (число), id > 0
-		sum - сумма средств для пополнения или снятия со счета пользователя, sum != 0
-  * Выходные данные:
-    Content-Type: application/json
-		response body: {"status":status,"id":id,"balance":balance}
-		---
-		status - статус ответа сервера (число)
-		id - идентификатор пользователя (число)
-		balance - баланс пользователя (число, максимум два знака после запятой)
-    
-
+* Входные данные:
+  * Content-Type: application/json
+  * request body: {"id":id,"sum":sum}
+  * id - уникальный идентификатор пользователя (число), id > 0
+  * sum - сумма средств для пополнения или снятия со счета пользователя, sum != 0
+* Выходные данные:
+  * Content-Type: application/json
+  * response body: {"status":status,"id":id,"balance":balance}
+  * status - статус ответа сервера (число)
+  * id - идентификатор пользователя (число)
+  * balance - баланс пользователя (число, максимум два знака после запятой)
+---
 3. Метод TransferMoney():
-  * Входные данные:
-    Content-Type: application/json
-		request body: {"from":from,"to":to,"sum":sum}
-		---
-		from - уникальный идентификатор пользователя, который переводит деньги на счет пользователя to, from > 0
-		to - уникальный идентификатор пользователя, которому переводит деньги пользователь from, to > 0
-		sum - сумма средств, которая переводится на счет пользователя to, sum > 0
-  * Выходные данные:
-    Content-Type: application/json
-		response body: {"status":status,"from_id":from_id,"from_balance":from_balance,"to_id":to_id,"to_balance":to_balance}
-		---
-		status - статус ответа сервера (число)
-		from_id, to_id - уникальные идентификаторы пользователей (число)
-    from_balance, to_balance - балансы пользователей (число, максимум два знака после запятой)
+* Входные данные:
+  * Content-Type: application/json
+  * request body: {"from":from,"to":to,"sum":sum}
+  * from - уникальный идентификатор пользователя, который переводит деньги на счет пользователя to, from > 0
+  * to - уникальный идентификатор пользователя, которому переводит деньги пользователь from, to > 0
+  * sum - сумма средств, которая переводится на счет пользователя to, sum > 0
+* Выходные данные:
+  * Content-Type: application/json
+  * response body: {"status":status,"from_id":from_id,"from_balance":from_balance,"to_id":to_id,"to_balance":to_balance}
+  * status - статус ответа сервера (число)
+  * from_id, to_id - уникальные идентификаторы пользователей (число)
+  * from_balance, to_balance - балансы пользователей (число, максимум два знака после запятой)
 
 Статусы ошибок:
-  * В случае успеха:
-			status = 0, id > 0, balance >= 0.00
-  * В случае фэйла:
-		Невалидные данные (вместо числа пришла строка, идентификатор пользователя отрицательный, в методе TransferMoney() при отрицательном значении sum, невалидный Content-Type):
-			status = 1, id = 0, balance = 0.00
-	  Недостаточно средств (в RefillAndWithdrawMoney() при снятии средств со счета пользователя, в TransferMoney() - при переводе средств с одного счета на другой):
-			status = 2, id = 0, balance = 0.00
-		Несуществующий идентификатор пользователя (во всех методах):
-			status = 3, id = 0, balance = 0.00
-		Ошибка сервера (во всех методах):
-			status = 4, id = 0, balance = 0.00
+1. В случае успеха:
+  * status = 0, id > 0, balance >= 0.00
+3. В случае фэйла:
+* Невалидные данные (вместо числа пришла строка, идентификатор пользователя отрицательный, в методе TransferMoney() при отрицательном значении sum, невалидный Content-Type):
+  * status = 1, id = 0, balance = 0.00
+* Недостаточно средств (в RefillAndWithdrawMoney() при снятии средств со счета пользователя, в TransferMoney() - при переводе средств с одного счета на другой):
+  * status = 2, id = 0, balance = 0.00
+* Несуществующий идентификатор пользователя (во всех методах):
+  * status = 3, id = 0, balance = 0.00
+* Ошибка сервера (во всех методах):
+  * status = 4, id = 0, balance = 0.00
 
 
 ### Тестирование
